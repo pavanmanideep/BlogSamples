@@ -1,0 +1,63 @@
+using System;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.ServiceModel.Description;
+using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Crm.Sdk.Messages;
+using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Client;
+
+namespace CRM.AzureFunction.Integration {
+  public static class Function1 {
+    [FunctionName("Function1")]
+    public static Task RunAsync([HttpTrigger(AuthorizationLevel.Anonymous, "POST", Route = null)] HttpRequestMessage req, TraceWriter log) {
+
+      log.Info("C# HTTP trigger function processed a request.");
+
+      IOrganizationService service = Connection(log);
+      if(service != null )
+     {    
+         Entity customEntity = new Entity("ecellors");
+         customEntity["name"] = "Created from the azure function app";
+         service.Create(customEntity);
+      }
+
+      return Task.CompletedTask;
+    }
+
+    private static IOrganizationService Connection(TraceWriter log) {
+      IOrganizationService service = null;
+
+      #region Credentials Code
+      //Credentials
+      string URL = "Dynamics CRM URL";
+      string userName = "userName";
+      string password = "passWord";
+      #endregion
+
+     string conn = $ @ "Url = {URL};AuthType = {AuthType};UserName = {userName};Password = {password}; AppId=0b065231-6d28-431e-ab12-4d7d3346612c; RedirectUri=app://singaporecancersociety.crm5.dynamics.com/ LoginPrompt=Never" />
+ 
+      
+      var svc = new CrmServiceClient(conn);
+      service = svc.OrganizationWebProxyClient != null ? svc.OrganizationWebProxyClient : (IOrganizationService) svc.OrganizationServiceProxy;
+
+      if (service != null) {
+        Guid userid = ((WhoAmIResponse) service.Execute(new WhoAmIRequest())).UserId;
+
+        if (userid != Guid.Empty) {
+          log.Info("Connection Established Successfully...");
+        }
+      } else {
+        log.Info("Failed to Established Connection!!!");
+      }
+    } catch (Exception ex) {
+      log.Info("Exception caught - " + ex.Message);
+    }
+
+    return service;
+  }
+}
